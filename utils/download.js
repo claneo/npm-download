@@ -5,21 +5,21 @@ const packageString = require('./packageString');
 const existLatests = require('./latests');
 const npmApi = require('./npmApi');
 
-// fs.rmdirSync(path.resolve(__dirname, '../download'));
+module.exports = async files => {
+  // fs.rmdirSync(path.resolve(__dirname, '../download'));
 
-if (!fs.existsSync(path.resolve(__dirname, '../download'))) {
-  fs.mkdirSync(path.resolve(__dirname, '../download'));
-}
+  if (!fs.existsSync(path.resolve(__dirname, '../download'))) {
+    fs.mkdirSync(path.resolve(__dirname, '../download'));
+  }
 
-if (!fs.existsSync(path.resolve(__dirname, '../download/latest'))) {
-  fs.mkdirSync(path.resolve(__dirname, '../download/latest'));
-}
+  if (!fs.existsSync(path.resolve(__dirname, '../download/latest'))) {
+    fs.mkdirSync(path.resolve(__dirname, '../download/latest'));
+  }
 
-if (!fs.existsSync(path.resolve(__dirname, '../download/old'))) {
-  fs.mkdirSync(path.resolve(__dirname, '../download/old'));
-}
+  if (!fs.existsSync(path.resolve(__dirname, '../download/old'))) {
+    fs.mkdirSync(path.resolve(__dirname, '../download/old'));
+  }
 
-module.exports = files => {
   const packages = files.map(packageString);
   const old = [];
   const latest = [];
@@ -33,10 +33,10 @@ module.exports = files => {
       latest.push(package.name + '@' + package.version);
     }
   });
-  // old.forEach(item =>
-  //   npmApi.pack(item, path.resolve(__dirname, '../download/old'))
-  // );
-  latest.forEach(item => {
-    npmApi.pack(item, path.resolve(__dirname, '../download/latest'));
-  });
+  for (let i = 0; i < old.length; i += 1) {
+    await npmApi.pack(old[i], path.resolve(__dirname, '../download/old'));
+  }
+  for (let i = 0; i < latest.length; i += 1) {
+    await npmApi.pack(latest[i], path.resolve(__dirname, '../download/latest'));
+  }
 };

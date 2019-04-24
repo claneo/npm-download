@@ -23,13 +23,17 @@ function handleDependencies(package) {
 }
 
 fs.readFile(
-  path.resolve(__dirname, '../markdown-website/package-lock.json'),
+  path.resolve(__dirname, '../digital-earth/package-lock.json'),
   'utf8',
   (err, data) => {
     if (!err) {
       const rootPackage = JSON.parse(data);
       handleDependencies(rootPackage);
       console.log('file to download: ' + files.length);
+      fs.writeFileSync(
+        path.resolve(__dirname, './list.json'),
+        JSON.stringify(downloaded.concat(files).sort(), undefined, 4)
+      );
       download(files);
     }
   }
