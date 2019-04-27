@@ -4,8 +4,10 @@ const semver = require('semver');
 const packageString = require('./packageString');
 const existLatests = require('./latests');
 const npmApi = require('./npmApi');
+const downloaded = require('../list.json');
+const asyncPool = require('./asyncPool');
 
-module.exports = async files => {
+module.exports = async packages => {
   // fs.rmdirSync(path.resolve(__dirname, '../download'));
 
   if (!fs.existsSync(path.resolve(__dirname, '../download'))) {
@@ -20,23 +22,60 @@ module.exports = async files => {
     fs.mkdirSync(path.resolve(__dirname, '../download/old'));
   }
 
-  const packages = files.map(packageString);
+  if (!fs.existsSync(path.resolve(__dirname, '../download/tmp'))) {
+    fs.mkdirSync(path.resolve(__dirname, '../download/tmp'));
+  }
+
   const old = [];
+  const oldList = [];
   const latest = [];
   packages.forEach(package => {
-    if (
-      existLatests[package.name] &&
-      semver.gt(existLatests[package.name], package.version)
-    ) {
-      old.push(package.name + '@' + package.version);
-    } else {
-      latest.push(package.name + '@' + package.version);
+    if (!downloaded.includes(package)) {
+      const packageObj = packageString(package);
+      downloaded.push(package);
+      if (
+        existLatests[packageObj.name] &&
+        semver.gt(existLatests[packageObj.name], packageObj.version)
+      ) {
+        old.push(package);
+        oldList.push(packageObj.name + '@' + existLatests[packageObj.name]);
+      } else {
+        latest.push(package);
+      }
     }
   });
-  for (let i = 0; i < old.length; i += 1) {
-    await npmApi.pack(old[i], path.resolve(__dirname, '../download/old'));
-  }
-  for (let i = 0; i < latest.length; i += 1) {
-    await npmApi.pack(latest[i], path.resolve(__dirname, '../download/latest'));
-  }
+  // console.log(packages, old, latest);
+  let step = 0;
+  asyncPool(
+    old,
+    item =>
+      npmApi
+        .pack(item, path.resolve(__dirname, '../download/old'))
+        .then(() =>
+          console.log(
+            'downloaded: ' + ++step + '/' + (old.length + latest.length)
+          )
+        ),
+    5
+  );
+  asyncPool(
+    latest,
+    item =>
+      npmApi
+        .pack(item, path.resolve(__dirname, '../download/latest'))
+        .then(() =>
+          console.log(
+            'downloaded: ' + ++step + '/' + (old.length + latest.length)
+          )
+        ),
+    5
+  );
+  fs.writeFileSync(
+    path.resolve(__dirname, '../download/oldList.json'),
+    JSON.stringify(oldList, undefined, 4)
+  );
+  fs.writeFileSync(
+    path.resolve(__dirname, '../list.json'),
+    JSON.stringify(downloaded.sort(), undefined, 4)
+  );
 };

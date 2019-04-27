@@ -19,8 +19,12 @@ exports.publish = package =>
 exports.view = package =>
   new Promise((resolve, reject) => {
     const view = spawn('npm', ['--json', 'view', package]);
+    let result = '';
     view.stdout.on('data', data => {
-      resolve(JSON.parse(data.toString()));
+      result += data.toString();
+    });
+    view.stdout.on('close', () => {
+      resolve(JSON.parse(result));
     });
     view.on('error', reject);
   });
