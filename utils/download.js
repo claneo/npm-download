@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const semver = require('semver');
 const packageString = require('./packageString');
-const existLatests = require('./latests');
+const computeLatests = require('./latests');
 const npmApi = require('./npmApi');
 const downloaded = require('../list.json');
 const asyncPool = require('./asyncPool');
@@ -26,8 +26,10 @@ module.exports = async packages => {
     fs.mkdirSync(path.resolve(__dirname, '../download/tmp'));
   }
 
+  const existLatests = computeLatests(downloaded.concat(packages));
+
   const old = [];
-  const oldList = [];
+  let oldList = [];
   const latest = [];
   packages.forEach(package => {
     if (!downloaded.includes(package)) {
@@ -44,7 +46,6 @@ module.exports = async packages => {
       }
     }
   });
-  // console.log(packages, old, latest);
   let step = 0;
   asyncPool(
     old,
@@ -70,6 +71,11 @@ module.exports = async packages => {
         ),
     5
   );
+  if (fs.existsSync(path.resolve(__dirname, '../download/oldList.json')))
+    oldList = oldList
+      .concat(require('../download/oldList.json'))
+      .sort()
+      .filter((item, i, arr) => arr.indexOf(item) === i);
   fs.writeFileSync(
     path.resolve(__dirname, '../download/oldList.json'),
     JSON.stringify(oldList, undefined, 4)

@@ -1,12 +1,13 @@
 const semver = require('semver');
 const packageString = require('./packageString');
 
-const list = require('../list.json');
+module.exports = list => {
+  const latest = {};
+  list.forEach(item => {
+    const { name, version } = packageString(item);
 
-const latest = {};
-list.forEach(item => {
-  const { name, version } = packageString(item);
-
-  if (!latest[name] || semver.gt(version, latest[name])) latest[name] = version;
-});
-module.exports = latest;
+    if (!latest[name] || semver.gt(version, latest[name]))
+      latest[name] = version;
+  });
+  return latest;
+};
