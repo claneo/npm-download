@@ -3,17 +3,10 @@ const path = require('path');
 const npmApi = require('./utils/npmApi');
 const asyncPool = require('./utils/asyncPool');
 
-Promise.all([
-  fs.readdir(path.resolve(__dirname, './download/old')),
-  fs.readdir(path.resolve(__dirname, './download/latest')),
-])
-  .then(([old, latest]) =>
+fs.readdir(path.resolve(__dirname, './download/old'))
+  .then(files =>
     asyncPool(
-      old
-        .map(item => path.resolve(__dirname, './download/old', item))
-        .concat(
-          latest.map(item => path.resolve(__dirname, './download/latest', item))
-        ),
+      files.map(item => path.resolve(__dirname, './download/old', item)),
       npmApi.publish
     )
   )
@@ -26,6 +19,13 @@ Promise.all([
   .then(files =>
     asyncPool(
       files.map(file => path.resolve(__dirname, './download/tmp', file)),
+      npmApi.publish
+    )
+  )
+  .then(() => fs.readdir(path.resolve(__dirname, './download/latest')))
+  .then(files =>
+    asyncPool(
+      files.map(item => path.resolve(__dirname, './download/old', item)),
       npmApi.publish
     )
   );
