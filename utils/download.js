@@ -32,7 +32,9 @@ module.exports = async packages => {
   let oldList = [];
   const latest = [];
   packages.forEach(package => {
-    if (!downloaded.includes(package)) {
+    if (downloaded.includes(package)) {
+      console.log('skipped existing package: ' + package);
+    } else {
       const packageObj = packageString(package);
       downloaded.push(package);
       if (
@@ -49,26 +51,18 @@ module.exports = async packages => {
   let step = 0;
   asyncPool(
     old,
-    item =>
-      npmApi
-        .pack(item, path.resolve(__dirname, '../download/old'))
-        .then(() =>
-          console.log(
-            'downloaded: ' + ++step + '/' + (old.length + latest.length)
-          )
-        ),
+    item => {
+      console.log('downloading old package: ' + item);
+      return npmApi.pack(item, path.resolve(__dirname, '../download/old'));
+    },
     5
   );
   asyncPool(
     latest,
-    item =>
-      npmApi
-        .pack(item, path.resolve(__dirname, '../download/latest'))
-        .then(() =>
-          console.log(
-            'downloaded: ' + ++step + '/' + (old.length + latest.length)
-          )
-        ),
+    item => {
+      console.log('downloading latest package: ' + item);
+      return npmApi.pack(item, path.resolve(__dirname, '../download/latest'));
+    },
     5
   );
   if (fs.existsSync(path.resolve(__dirname, '../download/oldList.json')))
