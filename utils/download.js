@@ -48,34 +48,37 @@ module.exports = async packages => {
       }
     }
   });
-  let step = 0;
-  asyncPool(
-    old,
-    item => {
-      console.log('downloading old package: ' + item);
-      return npmApi.pack(item, path.resolve(__dirname, '../download/old'));
-    },
-    5
-  );
-  asyncPool(
-    latest,
-    item => {
-      console.log('downloading latest package: ' + item);
-      return npmApi.pack(item, path.resolve(__dirname, '../download/latest'));
-    },
-    5
-  );
-  if (fs.existsSync(path.resolve(__dirname, '../download/oldList.json')))
-    oldList = oldList
-      .concat(require('../download/oldList.json'))
-      .sort()
-      .filter((item, i, arr) => arr.indexOf(item) === i);
-  fs.writeFileSync(
-    path.resolve(__dirname, '../download/oldList.json'),
-    JSON.stringify(oldList, undefined, 4)
-  );
-  fs.writeFileSync(
-    path.resolve(__dirname, '../list.json'),
-    JSON.stringify(downloaded.sort(), undefined, 4)
-  );
+  Promise.all([
+    asyncPool(
+      old,
+      item => {
+        console.log('downloading old package: ' + item);
+        return npmApi.pack(item, path.resolve(__dirname, '../download/old'));
+      },
+      5
+    ),
+    asyncPool(
+      latest,
+      item => {
+        console.log('downloading latest package: ' + item);
+        return npmApi.pack(item, path.resolve(__dirname, '../download/latest'));
+      },
+      5
+    ),
+  ]).then(() => {
+    if (fs.existsSync(path.resolve(__dirname, '../download/oldList.json')))
+      oldList = oldList
+        .concat(require('../download/oldList.json'))
+        .sort()
+        .filter((item, i, arr) => arr.indexOf(item) === i);
+    fs.writeFileSync(
+      path.resolve(__dirname, '../download/oldList.json'),
+      JSON.stringify(oldList, undefined, 4)
+    );
+    fs.writeFileSync(
+      path.resolve(__dirname, '../list.json'),
+      JSON.stringify(downloaded.sort(), undefined, 4)
+    );
+    console.log('complete');
+  });
 };
