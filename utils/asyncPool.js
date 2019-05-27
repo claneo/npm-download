@@ -1,5 +1,6 @@
 module.exports = (arr, iterator, limit = 10) =>
   new Promise(resolve => {
+    if (arr.length === 0) resolve();
     let step = 0;
     let doing = 0;
     function exec(i) {
