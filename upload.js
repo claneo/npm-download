@@ -9,23 +9,7 @@ fs.readdir(path.resolve(__dirname, './download/old'))
       files.map(item => path.resolve(__dirname, './download/old', item)),
       item => {
         console.log('uploading old package: ' + item);
-        return npmApi.publish(item);
-      }
-    )
-  )
-  .then(() =>
-    asyncPool(require('./download/oldList.json'), item => {
-      console.log('downloading old package: ' + item);
-      return npmApi.pack(item, path.resolve(__dirname, './download/tmp'));
-    })
-  )
-  .then(() => fs.readdir(path.resolve(__dirname, './download/tmp')))
-  .then(files =>
-    asyncPool(
-      files.map(file => path.resolve(__dirname, './download/tmp', file)),
-      item => {
-        console.log('uploading old package: ' + item);
-        return npmApi.publish(item);
+        return npmApi.publish(item, true);
       }
     )
   )

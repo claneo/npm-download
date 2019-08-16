@@ -9,11 +9,16 @@ exports.pack = (package, path) =>
     pack.on('error', reject);
   });
 
-exports.publish = package =>
+exports.publish = (package, noTag) =>
   new Promise((resolve, reject) => {
-    const publish = spawn('npm', ['-s', 'publish', package]);
+    const args = ['-s', 'publish', package];
+    if (noTag) args.push('--no-tag');
+    const publish = spawn('npm', args);
     publish.on('close', resolve);
-    publish.on('error', reject);
+    publish.stderr.on('data', data => {
+      console.log(data.toString());
+      reject();
+    });
   });
 
 exports.view = package =>
