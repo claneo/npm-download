@@ -31,10 +31,4 @@ module.exports = (top = 250) => {
       )
     )
   ).then(() => result);
-  // return Promise.all(requests.map(({ size, from }) => search(size, from))).then(
-  //   arrs =>
-  //     arrs
-  //       .reduce((prev, arr) => [...prev, ...arr], [])
-  //       .map(item => `${item.package.name}@${item.package.version}`)
-  // );
 };
