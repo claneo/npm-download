@@ -1,22 +1,37 @@
 const nexusList = require('./utils/nexusList');
 const fs = require('fs');
-const path = require('path');
 
-nexusList(
-  'http://192.168.10.200:8081/service/rest/v1/components?repository=npm-hosted'
-).then(list => {
-  fs.writeFileSync(
-    path.resolve(__dirname, './list.json'),
-    JSON.stringify(
-      list
-        .map(item => {
-          if (item.group)
-            return '@' + item.group + '/' + item.name + '@' + item.version;
-          return item.name + '@' + item.version;
-        })
-        .sort(),
-      undefined,
-      4
-    )
-  );
+function echoHelper() {
+  console.log(`need nexusRepo.json in work dir
+{
+    "nexusUrl": "",
+    "repoName": "npm"
+}`);
+}
+
+fs.readFile('./nexusRepo.json', 'utf8', (err, data) => {
+  if (err) echoHelper();
+  else {
+    let nexusRepo = {};
+    try {
+      nexusRepo = JSON.parse(data);
+    } catch (error) {
+      echoHelper();
+      return;
+    }
+    if (
+      typeof nexusRepo.nexusUrl !== 'string' ||
+      typeof nexusRepo.repoName !== 'string'
+    ) {
+      echoHelper();
+      return;
+    }
+    nexusList(nexusRepo.nexusUrl, nexusRepo.repoName).then(packages => {
+      nexusRepo.packages = packages;
+      fs.writeFileSync(
+        './nexusRepo.json',
+        JSON.stringify(nexusRepo, undefined, 4),
+      );
+    });
+  }
 });

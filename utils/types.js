@@ -1,4 +1,4 @@
-const request = require('./request');
+const axios = require('axios').default;
 
 module.exports = () =>
-  request('https://cdn.jsdelivr.net/npm/types-registry@latest/index.json');
+  axios.get('https://cdn.jsdelivr.net/npm/types-registry@latest/index.json');
