@@ -1,13 +1,16 @@
 const path = require('path');
 const npm = require('./utils/npm');
 
-const fromInput = require('./fromInput');
-const fromPackageJson = require('./fromPackageJson');
-const fromPackageLockJson = require('./fromPackageLockJson');
-const fromTop = require('./fromTop');
+const resolveDependencies = require('./utils/resolveDependencies');
+const packagesList = require('./utils/packageList');
+// const fromInput = require('./fromInput');
+// const fromPackageJson = require('./fromPackageJson');
+// const fromPackageLockJson = require('./fromPackageLockJson');
+// const fromTop = require('./fromTop');
 
 const program = require('commander');
-const config = require('./config');
+const configUtil = require('./utils/config');
+const nexusList = require('./utils/nexusList');
 
 program.version(require('./package.json').version);
 
@@ -15,14 +18,14 @@ program
   .command('config-nexus <url>')
   .description('config nexus url')
   .action(url => {
-    config.set({ nexusUrl: url });
+    configUtil.set({ nexusUrl: url });
   });
 
 program
   .command('config-repo <repo>')
   .description('config nexus repo name')
   .action(repo => {
-    config.set({ repoName: repo });
+    configUtil.set({ repoName: repo });
   });
 
 program
@@ -43,7 +46,10 @@ program
   .command('name <packages...>')
   .description('read from package names')
   .action(packages => {
-    fromInput(packages);
+    // fromInput(packages);
+    resolveDependencies(packages).then(r => {
+      console.log(packagesList.diffVersions(configUtil.get().packages, r));
+    });
   });
 
 const defaultTop = 200;
@@ -57,6 +63,24 @@ program
 program
   .command('type')
   .description('read from type-registry')
+  .action(() => {});
+
+program
+  .command('list')
+  .description('list existing package and save to nexusRepo.json')
+  .action(() => {
+    const { nexusUrl, repoName } = configUtil.get();
+    if (typeof nexusUrl !== 'string' || typeof repoName !== 'string') {
+      console.log('config first');
+    } else
+      nexusList(nexusUrl, repoName).then(packages => {
+        configUtil.set({ packages });
+      });
+  });
+
+program
+  .command('upload')
+  .description('upload packages in current dir')
   .action(() => {});
 
 program.parse(process.argv);

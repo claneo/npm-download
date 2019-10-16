@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 module.exports.get = () => {
-  let config = {};
+  let config = { nexusUrl: '', repoName: '', packages: {} };
   try {
     const configFileData = fs.readFileSync('./nexusRepo.json', 'utf8');
     config = JSON.parse(configFileData);

@@ -33,10 +33,10 @@ const nexusList = async function(baseUrl, repoName) {
     (prev, cur) => prev.concat(cur.data.result.data),
     [],
   );
-  const packages = {};
+  let packages = {};
   list.forEach(item => {
-    let packageName = `${item.name}@${item.version}`;
-    if (item.group) packageName = `@${item.group}/${item.name}@${item.version}`;
+    let packageName = item.name;
+    if (item.group) packageName = `@${item.group}/${item.name}`;
     if (!packages[packageName])
       packages[packageName] = { versions: [], tags: {} };
     if (!packages[packageName].versions.includes(item.version))
@@ -50,6 +50,13 @@ const nexusList = async function(baseUrl, repoName) {
         });
       }),
     ),
+  );
+  packages = Object.fromEntries(
+    Object.entries(packages).sort(([a], [b]) => {
+      if (a > b) return 1;
+      if (a < b) return -1;
+      return 0;
+    }),
   );
   return packages;
 };
