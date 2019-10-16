@@ -59,6 +59,7 @@ module.exports.diffTags = (existList, newList) => {
     delete diff[pkg].versions;
     if (Object.keys(tags).length === 0) delete diff[pkg];
   });
+  return diff;
 };
 
 module.exports.flat = l => {

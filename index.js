@@ -11,6 +11,7 @@ const packagesList = require('./utils/packageList');
 const program = require('commander');
 const configUtil = require('./utils/config');
 const nexusList = require('./utils/nexusList');
+const download = require('./utils/download');
 
 program.version(require('./package.json').version);
 
@@ -46,9 +47,8 @@ program
   .command('name <packages...>')
   .description('read from package names')
   .action(packages => {
-    // fromInput(packages);
     resolveDependencies(packages).then(r => {
-      console.log(packagesList.diffVersions(configUtil.get().packages, r));
+      download(r);
     });
   });
 
