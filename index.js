@@ -12,6 +12,7 @@ const program = require('commander');
 const configUtil = require('./utils/config');
 const nexusList = require('./utils/nexusList');
 const download = require('./utils/download');
+const getTypesRegistry = require('./utils/types');
 
 program.version(require('./package.json').version);
 
@@ -63,7 +64,11 @@ program
 program
   .command('type')
   .description('read from type-registry')
-  .action(() => {});
+  .action(() => {
+    getTypesRegistry().then(packages => {
+      download(packages);
+    });
+  });
 
 program
   .command('list')

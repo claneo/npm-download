@@ -1,6 +1,7 @@
 const npm = require('./npm');
 const asyncPool = require('./asyncPool');
 const packageList = require('./packageList');
+const packageString = require('./packageString');
 
 module.exports = packageNames =>
   npm
@@ -14,7 +15,7 @@ module.exports = packageNames =>
       await asyncPool(Object.keys(packages), pkg =>
         npm.view(pkg).then(info => {
           packageList.addTag(packages, pkg, info['dist-tags']);
-        }),
+        })
       );
       return packages;
     });

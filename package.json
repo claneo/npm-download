@@ -16,7 +16,6 @@
     "semver": "^6.0.0"
   },
   "bin": {
-    "npd": "bin/npd.js",
-    "npd-config": "bin/npd-config.js"
+    "npd": "bin/npd.js"
   }
 }
