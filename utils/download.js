@@ -38,7 +38,6 @@ module.exports = async packages => {
     configUtil.get().packages,
     packages
   );
-  packagesList.saveDiffFile(packages);
 
   console.log(`${diffVersions.length} packages to download`);
   process.chdir('./download');
@@ -51,4 +50,6 @@ module.exports = async packages => {
     100
   );
   process.chdir('..');
+
+  packagesList.saveDiffFile(packages);
 };
