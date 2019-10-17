@@ -11,16 +11,16 @@ try {
     dirname = path.join(process.env.APPDATA, 'npm');
     try {
       npmPath = require.resolve(
-        path.join(process.env.APPDATA, 'npm/node_modules/npm')
+        path.join(process.env.APPDATA, 'npm/node_modules/npm'),
       );
     } catch (error) {
       npmPath = require.resolve(
-        path.join(path.dirname(process.execPath), 'node_modules/npm')
+        path.join(path.dirname(process.execPath), 'node_modules/npm'),
       );
     }
   } else {
     npmPath = require.resolve(
-      path.join(path.dirname(process.execPath), '../lib/node_modules/npm')
+      path.join(path.dirname(process.execPath), '../lib/node_modules/npm'),
     );
   }
 }
@@ -30,8 +30,8 @@ const npm = require(npmPath);
 const load = new Promise(resolve =>
   npm.load(
     { silent: true, json: true, loglevel: 'silent', audit: false },
-    resolve
-  )
+    resolve,
+  ),
 );
 
 // module.exports.load = (config = {}) =>
@@ -44,17 +44,28 @@ module.exports.view = package =>
           const values = Object.values(result);
           if (!values) reject();
           else resolve(values[0]);
-        })
-      )
+        }),
+      ),
   );
 module.exports.distTag = {
   ls: pkg =>
     load.then(() => new Promise(resolve => npm.commands.distTag(['ls', pkg]))),
   add: (pkg, tag, version) =>
-    load.then(() => new Promise(resolve => npm.commands.distTag(['ls', pkg]))),
+    load.then(
+      () =>
+        new Promise((resolve, reject) =>
+          npm.commands.distTag(
+            ['add', `${pkg}@${version}`, tag],
+            (err, data) => {
+              if (err) reject(err);
+              else resolve(data);
+            },
+          ),
+        ),
+    ),
   rm: (pkg, tag) =>
     load.then(
-      () => new Promise(resolve => npm.commands.distTag(['rm', pkg, tag]))
+      () => new Promise(resolve => npm.commands.distTag(['rm', pkg, tag])),
     ),
 };
 module.exports.publish = pkg =>
@@ -63,8 +74,8 @@ module.exports.publish = pkg =>
       npm.commands.publish([pkg], v => {
         if (v instanceof Error) reject(v);
         else resolve(v);
-      })
-    )
+      }),
+    ),
   );
 module.exports.pack = (pkg, dir) =>
   load.then(
@@ -73,8 +84,8 @@ module.exports.pack = (pkg, dir) =>
         npm.commands.pack([pkg], true, (err, data) => {
           if (err) reject(err);
           else resolve(data);
-        })
-      )
+        }),
+      ),
   );
 // module.exports.install = packages =>
 //   load.then(() => {
@@ -128,14 +139,14 @@ pirates.addHook(
           delete json.publishConfig;
           cb(err, json);
         });
-      })`
+      })`,
     );
   },
   {
     ignoreNodeModules: false,
     matcher: filename =>
       filename === path.join(path.dirname(npmPath), 'publish.js'),
-  }
+  },
 );
 
 pirates.addHook(
@@ -146,5 +157,5 @@ pirates.addHook(
     ignoreNodeModules: false,
     matcher: filename =>
       filename === path.join(path.dirname(npmPath), 'pack.js'),
-  }
+  },
 );

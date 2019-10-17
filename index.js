@@ -1,5 +1,6 @@
 const path = require('path');
 const npm = require('./utils/npm');
+const rwFile = require('./utils/rwFile');
 
 const resolveDependencies = require('./utils/resolveDependencies');
 const packagesList = require('./utils/packageList');
@@ -13,6 +14,7 @@ const configUtil = require('./utils/config');
 const nexusList = require('./utils/nexusList');
 const download = require('./utils/download');
 const getTypesRegistry = require('./utils/types');
+const upload = require('./utils/upload');
 
 program.version(require('./package.json').version);
 
@@ -86,7 +88,9 @@ program
 program
   .command('upload')
   .description('upload packages in current dir')
-  .action(() => {});
+  .action(() => {
+    upload();
+  });
 
 program.parse(process.argv);
 
