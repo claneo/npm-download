@@ -59,11 +59,9 @@ module.exports.saveDiffFile = newList => {
     pkgV.versions = pkgV.versions.filter(ver => !existVersions.includes(ver));
     const allVersions = [...existVersions, ...pkgV.versions];
     Object.entries(pkgV.tags).forEach(([tag, ver]) => {
-      if (tag !== 'latest') {
-        if (
-          !allVersions.includes(ver) ||
-          (existAll[pkg] && existAll[pkg].tags[tag] === ver)
-        )
+      if (!allVersions.includes(ver)) delete pkgV.tags[tag];
+      else if (tag !== 'latest') {
+        if (existAll[pkg] && existAll[pkg].tags[tag] === ver)
           delete pkgV.tags[tag];
       } else {
         if (pkgV.versions.length === 0) delete pkgV.tags[tag];

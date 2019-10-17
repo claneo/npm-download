@@ -40,6 +40,7 @@ module.exports = async packages => {
   );
   packagesList.saveDiffFile(packages);
 
+  console.log(`${diffVersions.length} packages to download`);
   process.chdir('./download');
   await asyncPool(
     diffVersions,
@@ -50,6 +51,4 @@ module.exports = async packages => {
     100
   );
   process.chdir('..');
-
-  console.log(`${diffVersions.length} packages to download`);
 };
