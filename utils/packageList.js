@@ -1,3 +1,6 @@
+const configUtil = require('./config');
+const rwFile = require('./rwFile');
+
 const merge = (a, b) => {
   a = JSON.parse(JSON.stringify(a));
   Object.entries(b).forEach(([package, { versions = [], tags = {} }]) => {
@@ -46,26 +49,38 @@ module.exports.diffVersions = (existList, newList) => {
   return packages;
 };
 
-module.exports.diffTags = (existList, newList) => {
-  const diff = merge(existList, newList); // To get all tags and versions
-  Object.entries(diff).forEach(([pkg, { versions, tags }]) => {
-    Object.entries(tags).forEach(([tag, tagVer]) => {
-      if (
-        (existList[pkg] && existList[pkg].tags[tag] === tagVer) ||
-        !versions.includes(tagVer)
-      )
-        delete tags[tag];
+module.exports.saveDiffFile = newList => {
+  const existList = configUtil.get().packages;
+  const prevDiff = rwFile.get('./diff.json') || {};
+  const existAll = merge(existList, prevDiff);
+  newList = merge(newList, {}); // deep copy
+  Object.entries(newList).forEach(([pkg, pkgV]) => {
+    const existVersions = existAll[pkg] ? existAll[pkg].versions : [];
+    pkgV.versions = pkgV.versions.filter(ver => !existVersions.includes(ver));
+    const allVersions = [...existVersions, ...pkgV.versions];
+    Object.entries(pkgV.tags).forEach(([tag, ver]) => {
+      if (tag !== 'latest') {
+        if (
+          !allVersions.includes(ver) ||
+          (existAll[pkg] && existAll[pkg].tags[tag] === ver)
+        )
+          delete pkgV.tags[tag];
+      } else {
+        if (pkgV.versions.length === 0) delete pkgV.tags[tag];
+      }
     });
-    delete diff[pkg].versions;
-    if (Object.keys(tags).length === 0) delete diff[pkg];
+    if (pkgV.versions.length === 0 && Object.values(pkgV.tags).length === 0)
+      delete newList[pkg];
   });
-  return diff;
+  const diff = merge(prevDiff, newList);
+  rwFile.set('./diff.json', diff);
+  configUtil.set({ packages: merge(existList, diff) });
 };
 
 module.exports.flat = l => {
   const list = [];
   Object.entries(l).forEach(([pkg, { versions }]) =>
-    versions.forEach(ver => list.push(`${pkg}@${ver}`)),
+    versions.forEach(ver => list.push(`${pkg}@${ver}`))
   );
   return list.sort();
 };

@@ -1,15 +1,16 @@
-const fs = require('fs');
+const rwFile = require('./rwFile');
 
 module.exports.get = () => {
-  let config = { nexusUrl: '', repoName: '', packages: {} };
-  try {
-    const configFileData = fs.readFileSync('./nexusRepo.json', 'utf8');
-    config = JSON.parse(configFileData);
-  } catch (e) {}
-  return config;
+  return (
+    rwFile.get('./nexusRepo.json') || {
+      nexusUrl: '',
+      repoName: '',
+      packages: {},
+    }
+  );
 };
 module.exports.set = changed => {
   const config = module.exports.get();
   Object.assign(config, changed);
-  fs.writeFileSync('./nexusRepo.json', JSON.stringify(config, undefined, 4));
+  rwFile.set('./nexusRepo.json', config);
 };

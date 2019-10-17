@@ -1,10 +1,10 @@
 const npm = require('./npm');
 const asyncPool = require('./asyncPool');
 const packageList = require('./packageList');
-const packageString = require('./packageString');
 
-module.exports = packageNames =>
-  npm
+module.exports = packageNames => {
+  console.log('resolving dependencies...');
+  return npm
     .install(packageNames)
     .then(data => data.added)
     .then(async list => {
@@ -19,6 +19,7 @@ module.exports = packageNames =>
       );
       return packages;
     });
+};
 
 // const npm = require('./npm');
 

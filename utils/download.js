@@ -38,7 +38,8 @@ module.exports = async packages => {
     configUtil.get().packages,
     packages
   );
-  const diffTags = packagesList.diffTags(configUtil.get().packages, packages);
+  packagesList.saveDiffFile(packages);
+
   process.chdir('./download');
   await asyncPool(
     diffVersions,
@@ -48,5 +49,7 @@ module.exports = async packages => {
     },
     100
   );
-  fs.writeFileSync('./tags.json', JSON.stringify(diffTags, undefined, 4));
+  process.chdir('..');
+
+  console.log(`${diffVersions.length} packages to download`);
 };
