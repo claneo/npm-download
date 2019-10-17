@@ -1,32 +1,37 @@
 const fs = require('fs');
+const Promise = require('bluebird');
 const asyncPool = require('./asyncPool');
 const npm = require('./npm');
 const packagesList = require('./packageList');
 const configUtil = require('./config');
 
+const downloadedFilename = pkg =>
+  pkg
+    .replace(/^@/, '')
+    .replace('/', '-')
+    .replace('@', '-') + '.tgz';
+
 const checkFile = pkg =>
   new Promise((resolve, reject) => {
-    fs.stat(
-      pkg
-        .replace(/^@/, '')
-        .replace('/', '-')
-        .replace('@', '-') + '.tgz',
-      (err, stat) => {
-        if (err) reject(err);
-        else {
-          if (stat.size === 0) reject();
-          else resolve();
-        }
+    fs.stat(downloadedFilename(pkg), (err, stat) => {
+      if (!err && stat.size !== 0) resolve();
+      else {
+        reject(
+          new Error(
+            `downloaded file ${downloadedFilename(pkg)} invalid, retry`,
+          ),
+        );
       }
-    );
+    });
   });
 
 const downloadSingle = pkg =>
   npm
     .pack(pkg)
+    .timeout(30000, `download ${pkg} timeout after 30s, retry`)
     .then(() => checkFile(pkg))
-    .catch(() => {
-      console.log(`download ${pkg} failed, retry...`);
+    .catch(e => {
+      console.error(e.message);
       return downloadSingle(pkg);
     });
 
@@ -36,19 +41,27 @@ module.exports = async packages => {
   }
   const diffVersions = packagesList.diffVersions(
     configUtil.get().packages,
-    packages
+    packages,
   );
 
   console.log(`${diffVersions.length} packages to download`);
   process.chdir('./download');
-  await asyncPool(
-    diffVersions,
+  await Promise.map(
+    diffVersions.reverse(),
     pkg => {
       console.log(`downloading ${pkg}`);
       return downloadSingle(pkg);
     },
-    100
+    { concurrency: 100 },
   );
+  // await asyncPool(
+  //   diffVersions,
+  //   pkg => {
+  //     console.log(`downloading ${pkg}`);
+  //     return downloadSingle(pkg);
+  //   },
+  //   10
+  // );
   process.chdir('..');
 
   packagesList.saveDiffFile(packages);

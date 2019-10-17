@@ -64,12 +64,12 @@ program
   });
 
 program
-  .command('type')
-  .description('read from type-registry')
-  .action(() => {
-    getTypesRegistry().then(packages => {
-      download(packages);
-    });
+  .command('types')
+  .description('read from types-registry')
+  .action(async () => {
+    const typesPackages = await getTypesRegistry();
+    const typesRegistry = await resolveDependencies(['types-registry']);
+    download(packagesList.merge(typesPackages, typesRegistry));
   });
 
 program

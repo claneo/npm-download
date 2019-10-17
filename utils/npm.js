@@ -1,6 +1,7 @@
 const path = require('path');
 const pirates = require('pirates');
 const spawn = require('cross-spawn');
+const Promise = require('bluebird');
 
 let npmPath;
 
