@@ -86,6 +86,20 @@ program
   });
 
 program
+  .command('add')
+  .description('read from types-registry')
+  .action(async () => {
+    //
+  });
+
+program
+  .command('upgrade')
+  .description('read from types-registry')
+  .action(async () => {
+    //
+  });
+
+program
   .command('upload')
   .description('upload packages in current dir')
   .action(() => {

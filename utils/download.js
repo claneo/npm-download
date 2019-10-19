@@ -1,15 +1,9 @@
 const fs = require('fs');
 const Promise = require('bluebird');
-const asyncPool = require('./asyncPool');
 const npm = require('./npm');
 const packagesList = require('./packageList');
 const configUtil = require('./config');
-
-const downloadedFilename = pkg =>
-  pkg
-    .replace(/^@/, '')
-    .replace('/', '-')
-    .replace('@', '-') + '.tgz';
+const downloadedFilename = require('./downloadedFilename');
 
 const checkFile = pkg =>
   new Promise((resolve, reject) => {
@@ -54,14 +48,6 @@ module.exports = async packages => {
     },
     { concurrency: 100 },
   );
-  // await asyncPool(
-  //   diffVersions,
-  //   pkg => {
-  //     console.log(`downloading ${pkg}`);
-  //     return downloadSingle(pkg);
-  //   },
-  //   10
-  // );
   process.chdir('..');
 
   packagesList.saveDiffFile(packages);
