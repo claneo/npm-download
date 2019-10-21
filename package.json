@@ -14,8 +14,7 @@
     "chalk": "^2.4.2",
     "commander": "^2.20.0",
     "cross-spawn": "^6.0.5",
-    "pirates": "^4.0.1",
-    "semver": "^6.0.0"
+    "pirates": "^4.0.1"
   },
   "bin": {
     "npd": "bin/npd.js"
