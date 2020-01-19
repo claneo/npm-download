@@ -68,9 +68,11 @@ module.exports.distTag = {
   ls: pkg =>
     load().then(
       () =>
-        new Promise(resolve =>
+        new Promise((resolve, reject) =>
           npm.commands.distTag(['ls', pkg], (err, data) => {
-            if (err) reject(err);
+            if (err && err.message.includes('No dist-tags found for'))
+              resolve({});
+            else if (err) reject(err);
             else resolve(data);
           }),
         ),
