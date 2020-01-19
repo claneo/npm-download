@@ -1,15 +1,8 @@
 const path = require('path');
-const npm = require('./utils/npm');
-const rwFile = require('./utils/rwFile');
+const program = require('commander');
 
 const resolveDependencies = require('./utils/resolveDependencies');
 const packagesList = require('./utils/packageList');
-// const fromInput = require('./fromInput');
-// const fromPackageJson = require('./fromPackageJson');
-// const fromPackageLockJson = require('./fromPackageLockJson');
-// const fromTop = require('./fromTop');
-
-const program = require('commander');
 const configUtil = require('./utils/config');
 const nexusList = require('./utils/nexusList');
 const download = require('./utils/download');
@@ -17,6 +10,8 @@ const getTypesRegistry = require('./utils/types');
 const upload = require('./utils/upload');
 
 program.version(require('./package.json').version);
+
+program.option('-d, --dry-run', 'run without install');
 
 program
   .command('config-nexus <url>')
@@ -36,14 +31,41 @@ program
   .command('json <dir>')
   .description('read from package.json in dir')
   .action(dir => {
-    fromPackageJson(path.join(dir, 'package.json'));
+    const packageJson = require(path.join(dir, 'package.json'));
+    let packages = [];
+    if (packageJson.dependencies)
+      Object.entries(packageJson.dependencies).forEach(([name, version]) => {
+        packages.push(name + '@' + version);
+      });
+    if (packageJson.devDependencies)
+      Object.entries(packageJson.devDependencies).forEach(([name, version]) => {
+        packages.push(name + '@' + version);
+      });
+    console.log(packages);
+    resolveDependencies(packages).then(r => {
+      download(r);
+    });
   });
 
 program
   .command('lock <dir>')
   .description('read from package-lock.json in dir')
   .action(dir => {
-    fromPackageLockJson(path.resolve(dir, 'package-lock.json'));
+    const packageLockJson = require(path.join(dir, 'package-lock.json'));
+    const packages = [];
+    function handleDependencies(package) {
+      if (package.dependencies) {
+        Object.entries(package.dependencies).forEach(
+          ([subPackageName, subPackageInfo]) => {
+            const subPackage = subPackageName + '@' + subPackageInfo.version;
+            if (!packages.includes(subPackage)) packages.push(subPackage);
+            handleDependencies(subPackageInfo);
+          },
+        );
+      }
+    }
+    handleDependencies(packageLockJson);
+    resolveDependencies(packages, false);
   });
 
 program

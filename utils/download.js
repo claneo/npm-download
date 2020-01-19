@@ -4,6 +4,7 @@ const npm = require('./npm');
 const packagesList = require('./packageList');
 const configUtil = require('./config');
 const downloadedFilename = require('./downloadedFilename');
+const program = require('commander');
 
 const checkFile = pkg =>
   new Promise((resolve, reject) => {
@@ -22,7 +23,7 @@ const checkFile = pkg =>
 const downloadSingle = pkg =>
   npm
     .pack(pkg)
-    .timeout(30000, `download ${pkg} timeout after 30s, retry`)
+    // .timeout(60000, `download ${pkg} timeout after 30s, retry`)
     .then(() => checkFile(pkg))
     .catch(e => {
       console.error(e.message);
@@ -30,25 +31,30 @@ const downloadSingle = pkg =>
     });
 
 module.exports = async packages => {
-  if (!fs.existsSync('./download')) {
-    fs.mkdirSync('./download');
-  }
   const diffVersions = packagesList.diffVersions(
     configUtil.get().packages,
     packages,
   );
 
   console.log(`${diffVersions.length} packages to download`);
-  process.chdir('./download');
-  await Promise.map(
-    diffVersions.reverse(),
-    pkg => {
-      console.log(`downloading ${pkg}`);
-      return downloadSingle(pkg);
-    },
-    { concurrency: 100 },
-  );
-  process.chdir('..');
+  if (program.dryRun) {
+    console.log(diffVersions);
+    console.log(`dry-run enabled, no package was downloaded`);
+  } else {
+    if (!fs.existsSync('./download')) {
+      fs.mkdirSync('./download');
+    }
+    process.chdir('./download');
+    await Promise.map(
+      diffVersions.reverse(),
+      pkg => {
+        console.log(`downloading ${pkg}`);
+        return downloadSingle(pkg);
+      },
+      { concurrency: 100 },
+    );
+    process.chdir('..');
 
-  packagesList.saveDiffFile(packages);
+    packagesList.saveDiffFile(packages);
+  }
 };
