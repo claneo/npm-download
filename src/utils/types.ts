@@ -1,16 +1,18 @@
-const https = require('https');
-const npm = require('./npm');
+import https from 'https';
+import * as npm from './npm';
 
-module.exports = async () => {
+export default async () => {
   const latestTsVersion = (await npm.view('typescript')).version;
   const [majorVer, minorVer] = latestTsVersion.split('.').map(item => +item);
-  const allTsVersions = [];
+  const allTsVersions: string[] = [];
   for (let i = 2; i <= majorVer; i++) {
     for (let j = 0; j <= (i === majorVer ? minorVer : 9); j++) {
       allTsVersions.push(`ts${i}.${j}`);
     }
   }
-  const typesRegistry = await new Promise((resolve, reject) => {
+  const typesRegistry = await new Promise<{
+    entries: Record<string, Record<string, string>>;
+  }>((resolve, reject) => {
     https.get(
       'https://cdn.jsdelivr.net/npm/types-registry@latest/index.json',
       res => {
@@ -21,9 +23,12 @@ module.exports = async () => {
       },
     );
   });
-  const packages = {};
+  const packages: Record<
+    string,
+    { versions: string[]; tags: Record<string, string> }
+  > = {};
   Object.entries(typesRegistry.entries).forEach(([pkg, tags]) => {
-    const versions = [];
+    const versions: string[] = [];
     Object.values(tags).forEach(version => {
       if (!versions.includes(version)) versions.push(version);
     });

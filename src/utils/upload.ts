@@ -1,15 +1,18 @@
-const fs = require('fs');
-const npm = require('./npm');
-const rwFile = require('./rwFile');
-const Promise = require('bluebird');
-const downloadedFilename = require('./downloadedFilename');
+import fs from 'fs';
+import * as npm from './npm';
+import * as rwFile from './rwFile';
+import BB from 'bluebird';
+import downloadedFilename from './downloadedFilename';
 
-module.exports = () =>
+export default () =>
   fs.readdir('./download', async (err, files) => {
-    const diff = rwFile.get('./diff.json');
-    const tagActions = [];
-    const falsePackages = [];
-    const latests = [];
+    const diff: Record<
+      string,
+      { tags: Record<string, string>; versions: string[] }
+    > = rwFile.get('./diff.json');
+    const tagActions: { pkg: string; version: string; tag: string }[] = [];
+    const falsePackages: string[] = [];
+    const latests: string[] = [];
     Object.entries(diff).forEach(([pkg, { tags, versions }]) => {
       if (versions && versions.some(item => item !== tags.latest)) {
         falsePackages.push(pkg);
@@ -19,8 +22,8 @@ module.exports = () =>
         else tagActions.push({ pkg, version, tag });
       });
     });
-    const latestFiles = [];
-    const nonLatestFiles = [];
+    const latestFiles: string[] = [];
+    const nonLatestFiles: string[] = [];
     files.forEach(file => {
       if (latests.some(item => downloadedFilename(item) === file))
         latestFiles.push(file);
@@ -29,7 +32,7 @@ module.exports = () =>
 
     await npm.publish(nonLatestFiles, false);
     await npm.publish(latestFiles, true);
-    await Promise.map(
+    await BB.map(
       tagActions,
       function tag({ pkg, version, tag }) {
         // console.log(`adding tag ${pkg}@${version} ${tag}`);
@@ -39,7 +42,7 @@ module.exports = () =>
       },
       { concurrency: 10 },
     );
-    await Promise.map(falsePackages, pkg => npm.distTag.rm(pkg, 'false'), {
+    await BB.map(falsePackages, pkg => npm.distTag.rm(pkg, 'false'), {
       concurrency: 10,
     });
   });

@@ -1,13 +1,13 @@
-const fs = require('fs');
-const Promise = require('bluebird');
-const npm = require('./npm');
-const packagesList = require('./packageList');
-const configUtil = require('./config');
-const downloadedFilename = require('./downloadedFilename');
-const program = require('commander');
+import fs from 'fs';
+import BB from 'bluebird';
+import * as npm from './npm';
+import * as packagesList from './packageList';
+import * as configUtil from './config';
+import downloadedFilename from './downloadedFilename';
+import program from 'commander';
 
-const checkFile = pkg =>
-  new Promise((resolve, reject) => {
+const checkFile = (pkg: string) =>
+  new BB((resolve, reject) => {
     fs.stat(downloadedFilename(pkg), (err, stat) => {
       if (!err && stat.size !== 0) resolve();
       else {
@@ -20,7 +20,7 @@ const checkFile = pkg =>
     });
   });
 
-const downloadSingle = pkg =>
+const downloadSingle = (pkg: string): Promise<unknown> =>
   npm
     .pack(pkg)
     // .timeout(60000, `download ${pkg} timeout after 30s, retry`)
@@ -30,7 +30,7 @@ const downloadSingle = pkg =>
       return downloadSingle(pkg);
     });
 
-module.exports = async packages => {
+export default async (packages: packagesList.PackageList) => {
   const diffVersions = packagesList.diffVersions(
     configUtil.get().packages,
     packages,
@@ -45,7 +45,7 @@ module.exports = async packages => {
       fs.mkdirSync('./download');
     }
     process.chdir('./download');
-    await Promise.map(
+    await BB.map(
       diffVersions.reverse(),
       pkg => {
         console.log(`downloading ${pkg}`);

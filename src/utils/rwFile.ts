@@ -1,6 +1,6 @@
-const fs = require('fs');
+import fs from 'fs';
 
-module.exports.get = file => {
+export const get = (file: string) => {
   try {
     const configFileData = fs.readFileSync(file, 'utf8');
     return JSON.parse(configFileData);
@@ -8,6 +8,6 @@ module.exports.get = file => {
     return undefined;
   }
 };
-module.exports.set = (file, content) => {
+export const set = (file: string, content: any) => {
   fs.writeFileSync(file, JSON.stringify(content, undefined, 4));
 };

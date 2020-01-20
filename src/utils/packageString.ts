@@ -1,4 +1,4 @@
-module.exports = str => {
+export default (str: string) => {
   let splited = str.split('@');
   let name = '';
   let version = '';

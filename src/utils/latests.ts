@@ -1,8 +1,8 @@
-const semver = require('semver');
-const packageString = require('./packageString');
+import semver from 'semver';
+import packageString from './packageString';
 
-module.exports = list => {
-  const latest = {};
+export default (list: string[]) => {
+  const latest: Record<string, string> = {};
   list.forEach(item => {
     const { name, version } = packageString(item);
 

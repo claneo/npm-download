@@ -1,13 +1,13 @@
-const pacote = require('pacote');
-const npa = require('npm-package-arg');
-const pickManifest = require('npm-pick-manifest');
-const path = require('path');
-const ssri = require('ssri');
-const getRegistry = require('./registry');
+import pacote from 'pacote';
+import npa from 'npm-package-arg';
+import pickManifest from 'npm-pick-manifest';
+import path from 'path';
+import ssri from 'ssri';
+import getRegistry from './registry';
 
 const cacheDir = path.join(require('pacote/lib/util/cache-dir')(), '_cacache');
 
-const resolvePackage = async pkg => {
+const resolvePackage = async (pkg: string) => {
   const packument = await pacote.packument(pkg, {
     cache: cacheDir,
     registry: getRegistry(),
@@ -20,4 +20,4 @@ const resolvePackage = async pkg => {
 
   return { ...manifest, 'dist-tags': packument['dist-tags'] };
 };
-module.exports = resolvePackage;
+export default resolvePackage;

@@ -1,4 +1,4 @@
-module.exports = pkg =>
+export default (pkg: string) =>
   pkg
     .replace(/^@/, '')
     .replace('/', '-')

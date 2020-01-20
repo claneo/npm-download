@@ -1,27 +1,22 @@
-const path = require('path');
-const pirates = require('pirates');
-const spawn = require('cross-spawn');
-const Promise = require('bluebird');
-const {
-  Worker,
-  isMainThread,
-  workerData,
-  parentPort,
-} = require('worker_threads');
-const chalk = require('chalk');
+import path from 'path';
+import * as pirates from 'pirates';
+import spawn from 'cross-spawn';
+import Promise from 'bluebird';
+import { Worker, isMainThread, workerData, parentPort } from 'worker_threads';
+import chalk from 'chalk';
 
 process.env['FORCE_COLOR'] = chalk.level.toString();
 
-let npmPath;
+let npmPath: string;
 
 try {
   npmPath = require.resolve('npm');
 } catch (error) {
   if (process.platform === 'win32') {
-    dirname = path.join(process.env.APPDATA, 'npm');
+    // const dirname = path.join(process.env.APPDATA as string, 'npm');
     try {
       npmPath = require.resolve(
-        path.join(process.env.APPDATA, 'npm/node_modules/npm'),
+        path.join(process.env.APPDATA as string, 'npm/node_modules/npm'),
       );
     } catch (error) {
       npmPath = require.resolve(
@@ -37,7 +32,7 @@ try {
 
 const npm = require(npmPath);
 
-const load = extraConfig =>
+const load = (extraConfig?: any) =>
   new Promise(resolve =>
     npm.load(
       {
@@ -53,23 +48,23 @@ const load = extraConfig =>
 
 // module.exports.load = (config = {}) =>
 //   new Promise(resolve => npm.load(config, resolve));
-module.exports.view = package =>
+export const view = (pkg: string) =>
   load().then(
     () =>
-      new Promise((resolve, reject) =>
-        npm.commands.view([package], true, (_, result) => {
-          const values = Object.values(result);
+      new Promise<{ version: string }>((resolve, reject) =>
+        npm.commands.view([pkg], true, (err: Error | null, result: any) => {
+          const values = Object.values<{ version: string }>(result);
           if (!values) reject();
           else resolve(values[0]);
         }),
       ),
   );
-module.exports.distTag = {
-  ls: pkg =>
+export const distTag = {
+  ls: (pkg: string): Promise<Record<string, string>> =>
     load().then(
       () =>
         new Promise((resolve, reject) =>
-          npm.commands.distTag(['ls', pkg], (err, data) => {
+          npm.commands.distTag(['ls', pkg], (err: Error | null, data: any) => {
             if (err && err.message.includes('No dist-tags found for'))
               resolve({});
             else if (err) reject(err);
@@ -77,53 +72,55 @@ module.exports.distTag = {
           }),
         ),
     ),
-  add: (pkg, tag, version) =>
+  add: (pkg: string, tag: string, version: string) =>
     load().then(
       () =>
         new Promise((resolve, reject) =>
           npm.commands.distTag(
             ['add', `${pkg}@${version}`, tag],
-            (err, data) => {
+            (err: Error | null, data: any) => {
               if (err) reject(err);
               else resolve(data);
             },
           ),
         ),
     ),
-  rm: (pkg, tag) =>
+  rm: (pkg: string, tag: string) =>
     load().then(
       () =>
         new Promise((resolve, reject) =>
-          npm.commands.distTag(['rm', pkg, tag], (err, data) => {
-            if (
-              !err ||
-              (typeof err.message === 'string' &&
-                err.message.includes('is not a dist-tag on'))
-            )
-              resolve(data);
-            else reject(err);
-          }),
+          npm.commands.distTag(
+            ['rm', pkg, tag],
+            (err: Error | null, data: any) => {
+              if (
+                !err ||
+                (typeof err.message === 'string' &&
+                  err.message.includes('is not a dist-tag on'))
+              )
+                resolve(data);
+              else reject(err);
+            },
+          ),
         ),
     ),
 };
-if (isMainThread) {
-  module.exports.publish = (packages, isLatest) =>
-    new Promise((resolve, reject) => {
-      const worker = new Worker(__filename, {
-        workerData: { packages, isLatest, action: 'publish' },
-      });
-      worker.addListener('message', resolve);
+export const publish = (packages: string[], isLatest: boolean) =>
+  new Promise((resolve, reject) => {
+    const worker = new Worker(__filename, {
+      workerData: { packages, isLatest, action: 'publish' },
     });
-} else {
+    worker.addListener('message', resolve);
+  });
+if (!isMainThread) {
   const { packages, isLatest, action } = workerData;
-  const publishOnce = pkg =>
+  const publishOnce = (pkg: string) =>
     new Promise((resolve, reject) =>
-      npm.commands.publish(['./download/' + pkg], v => {
+      npm.commands.publish(['./download/' + pkg], (v: any) => {
         if (v instanceof Error) reject(v);
         else resolve(v);
       }),
     );
-  const publish = pkg => {
+  const publish = (pkg: string): ReturnType<typeof publishOnce> => {
     if (isLatest) console.log(`uploading latest package: ${pkg}`);
     else console.log(`uploading non-latest package: ${pkg}`);
     return publishOnce(pkg).catch(() => {
@@ -134,20 +131,20 @@ if (isMainThread) {
   if (action === 'publish')
     load({ tag: isLatest ? 'latest' : 'false' })
       .then(() =>
-        Promise.map(packages, pkg => publish(pkg, isLatest), {
+        Promise.map(packages as string[], pkg => publish(pkg), {
           concurrency: 10,
         }),
       )
       .then(() => {
-        parentPort.postMessage('ok');
+        parentPort!.postMessage('ok');
         // process.exit();
       });
 }
-module.exports.pack = (pkg, dir) =>
+export const pack = (pkg: string, dir?: string) =>
   load().then(
     () =>
       new Promise((resolve, reject) =>
-        npm.commands.pack([pkg], true, (err, data) => {
+        npm.commands.pack([pkg], true, (err: Error | null, data: any) => {
           if (err) reject(err);
           else resolve(data);
         }),
@@ -170,7 +167,7 @@ module.exports.pack = (pkg, dir) =>
 //       });
 //     });
 //   });
-module.exports.install = packages =>
+export const install = (packages: string | string[]) =>
   new Promise((resolve, reject) => {
     if (!Array.isArray(packages)) packages = [packages];
     const install = spawn('npm', [
@@ -182,6 +179,7 @@ module.exports.install = packages =>
       '--dry-run',
       ...packages,
     ]);
+    if (install.stdout === null || install.stderr === null) throw reject();
     let result = '';
     install.stdout.on('data', data => {
       result += data.toString();

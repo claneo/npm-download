@@ -1,6 +1,6 @@
-const rwFile = require('./rwFile');
+import * as rwFile from './rwFile';
 
-module.exports.get = () => {
+export const get = () => {
   return (
     rwFile.get('./nexusRepo.json') || {
       nexusUrl: '',
@@ -9,8 +9,8 @@ module.exports.get = () => {
     }
   );
 };
-module.exports.set = changed => {
-  const config = module.exports.get();
+export const set = (changed: any) => {
+  const config = get();
   Object.assign(config, changed);
   rwFile.set('./nexusRepo.json', config);
 };

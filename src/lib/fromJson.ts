@@ -1,10 +1,9 @@
-const path = require('path');
+import path from 'path';
+import fromName from './fromName';
 
-const fromInput = require('./fromInput');
-
-module.exports = path => {
-  const packageJson = require(path);
-  let packages = [];
+export default function fromJson(dir: string) {
+  const packageJson = require(path.join(dir, 'package.json'));
+  let packages: string[] = [];
   if (packageJson.dependencies)
     Object.entries(packageJson.dependencies).forEach(([name, version]) => {
       packages.push(name + '@' + version);
@@ -13,5 +12,6 @@ module.exports = path => {
     Object.entries(packageJson.devDependencies).forEach(([name, version]) => {
       packages.push(name + '@' + version);
     });
-  return fromInput(packages);
-};
+  console.log(packages);
+  return fromName(packages);
+}

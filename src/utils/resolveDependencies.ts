@@ -1,13 +1,13 @@
-const packageList = require('./packageList');
-const asyncQueue = require('./asyncQueue');
-const resolvePackage = require('./resolvePackage');
-const readline = require('readline');
+import * as packageList from './packageList';
+import asyncQueue from './asyncQueue';
+import resolvePackage from './resolvePackage';
+import readline from 'readline';
 
-const resolveDependencies = async (packageNames, withDeps = true) => {
+const resolveDependencies = async (packageNames: string[], withDeps = true) => {
   console.log('resolving dependencies...');
 
   const unresolvedSpecs = packageNames;
-  const resolvedSpecs = [];
+  const resolvedSpecs: string[] = [];
   const resolvedPackages = {};
   await asyncQueue(unresolvedSpecs, async spec => {
     if (!resolvedSpecs.includes(spec)) {
@@ -16,7 +16,7 @@ const resolveDependencies = async (packageNames, withDeps = true) => {
       packageList.addVersion(resolvedPackages, pkg.name, pkg.version);
       packageList.addTag(resolvedPackages, pkg.name, pkg['dist-tags']);
 
-      readline.clearLine(process.stdout);
+      readline.clearLine(process.stdout, 0);
       readline.cursorTo(process.stdout, 0);
       const packageName = pkg.name + '@' + pkg.version;
       const info = `${unresolvedSpecs.length
@@ -39,6 +39,6 @@ const resolveDependencies = async (packageNames, withDeps = true) => {
   console.log('');
   return resolvedPackages;
 };
-module.exports = resolveDependencies;
+export default resolveDependencies;
 
 // resolveDependencies(["antd"]).then(console.log);
