@@ -48,17 +48,6 @@ const load = (extraConfig?: any) =>
 
 // module.exports.load = (config = {}) =>
 //   new Promise(resolve => npm.load(config, resolve));
-export const view = (pkg: string) =>
-  load().then(
-    () =>
-      new Promise<{ version: string }>((resolve, reject) =>
-        npm.commands.view([pkg], true, (err: Error | null, result: any) => {
-          const values = Object.values<{ version: string }>(result);
-          if (!values) reject();
-          else resolve(values[0]);
-        }),
-      ),
-  );
 export const distTag = {
   ls: (pkg: string): Promise<Record<string, string>> =>
     load().then(
@@ -150,48 +139,6 @@ export const pack = (pkg: string, dir?: string) =>
         }),
       ),
   );
-// module.exports.install = packages =>
-//   load.then(() => {
-//     if (!Array.isArray(packages)) packages = [packages];
-//     return new Promise((resolve, reject) => {
-//       const log = console.log;
-//       console.log = () => {};
-//       new npm.commands.install.Installer(
-//         path.join(__dirname, '../temp'),
-//         true,
-//         packages
-//       ).run((err, installed) => {
-//         console.log = log;
-//         if (err) reject(err);
-//         resolve(installed.map(item => item[0]));
-//       });
-//     });
-//   });
-export const install = (packages: string | string[]) =>
-  new Promise((resolve, reject) => {
-    if (!Array.isArray(packages)) packages = [packages];
-    const install = spawn('npm', [
-      '--json',
-      '-s',
-      'install',
-      '--prefix',
-      path.join(__dirname, '../temp'),
-      '--dry-run',
-      ...packages,
-    ]);
-    if (install.stdout === null || install.stderr === null) throw reject();
-    let result = '';
-    install.stdout.on('data', data => {
-      result += data.toString();
-    });
-    install.stdout.on('close', () => {
-      resolve(JSON.parse(result));
-    });
-    install.stderr.on('data', data => {
-      console.log(data.toString());
-      reject();
-    });
-  });
 
 pirates.addHook(
   code => {

@@ -1,5 +1,8 @@
-export default (pkg: string) =>
-  pkg
-    .replace(/^@/, '')
-    .replace('/', '-')
-    .replace('@', '-') + '.tgz';
+export default function downloadedFilename(pkg: string) {
+  return (
+    pkg
+      .replace(/^@/, '')
+      .replace('/', '-')
+      .replace('@', '-') + '.tgz'
+  );
+}

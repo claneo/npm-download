@@ -15,6 +15,8 @@ program.version(require('../package.json').version);
 
 program.option('-d, --dry-run', 'run without install');
 
+program.option('-r, --registry <url>', 'set registry');
+
 program
   .command('config-nexus <url>')
   .description('config nexus url')
