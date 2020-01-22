@@ -1,8 +1,8 @@
 import https from 'https';
-import resolvePackage from './resolvePackage';
+import { view } from './npm';
 
 export default async () => {
-  const latestTsVersion = (await resolvePackage('typescript')).version;
+  const latestTsVersion = (await view('typescript')).version;
   const [majorVer, minorVer] = latestTsVersion.split('.').map(item => +item);
   const allTsVersions: string[] = [];
   for (let i = 2; i <= majorVer; i++) {

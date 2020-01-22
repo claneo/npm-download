@@ -1,7 +1,7 @@
-import * as packageList from './packageList';
-import asyncQueue from './asyncQueue';
-import resolvePackage from './resolvePackage';
 import readline from 'readline';
+import asyncQueue from './asyncQueue';
+import { view } from './npm';
+import * as packageList from './packageList';
 
 const resolveDependencies = async (packageNames: string[], withDeps = true) => {
   console.log('resolving dependencies...');
@@ -12,7 +12,7 @@ const resolveDependencies = async (packageNames: string[], withDeps = true) => {
   await asyncQueue(unresolvedSpecs, async spec => {
     if (!resolvedSpecs.includes(spec)) {
       resolvedSpecs.push(spec);
-      const pkg = await resolvePackage(spec);
+      const pkg = await view(spec);
       packageList.addVersion(resolvedPackages, pkg.name, pkg.version);
       packageList.addTag(resolvedPackages, pkg.name, pkg['dist-tags']);
 

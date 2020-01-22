@@ -1,8 +1,9 @@
 import path from 'path';
+import { get } from '../utils/rwFile';
 import fromName from './fromName';
 
 export default function fromJson(dir: string) {
-  const packageJson = require(path.join(dir, 'package.json'));
+  const packageJson = get(path.join(dir, 'package.json'));
   let packages: string[] = [];
   if (packageJson.dependencies)
     Object.entries(packageJson.dependencies).forEach(([name, version]) => {

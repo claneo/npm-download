@@ -37,7 +37,7 @@ export default async (packages: packagesList.PackageList) => {
   );
 
   console.log(`${diffVersions.length} packages to download`);
-  if (program.dryRun) {
+  if (program.opts().dryRun) {
     console.log(diffVersions);
     console.log(`dry-run enabled, no package was downloaded`);
   } else {
@@ -55,6 +55,6 @@ export default async (packages: packagesList.PackageList) => {
     );
     process.chdir('..');
 
-    packagesList.saveDiffFile(packages);
+    if (program.opts().diff) packagesList.saveDiffFile(packages);
   }
 };

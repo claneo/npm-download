@@ -1,3 +1,7 @@
 declare module 'libnpmconfig' {
-  export const read: () => Record<string, string>;
+  export const read: (
+    _builtin?: any,
+  ) => Record<string, string> & {
+    toJSON: () => Record<string, string>;
+  };
 }

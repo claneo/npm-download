@@ -1,172 +1,114 @@
-import path from 'path';
-import * as pirates from 'pirates';
-import spawn from 'cross-spawn';
-import Promise from 'bluebird';
-import { Worker, isMainThread, workerData, parentPort } from 'worker_threads';
+import cacache from 'cacache';
 import chalk from 'chalk';
+import fs from 'fs';
+import libNpmConfig from 'libnpmconfig';
+import { publish as libNpmPublish } from 'libnpmpublish';
+import npa from 'npm-package-arg';
+import pickManifest from 'npm-pick-manifest';
+import regFetch from 'npm-registry-fetch';
+import osenv from 'osenv';
+import pacote from 'pacote';
+import path from 'path';
+import ssri from 'ssri';
+import downloadedFilename from './downloadedFilename';
 
 process.env['FORCE_COLOR'] = chalk.level.toString();
 
-let npmPath: string;
+export const config = libNpmConfig
+  .read({
+    tmp: osenv.tmpdir(),
+    cache: path.join(require('pacote/lib/util/cache-dir')(), '_cacache'),
+  })
+  .toJSON();
 
-try {
-  npmPath = require.resolve('npm');
-} catch (error) {
-  if (process.platform === 'win32') {
-    // const dirname = path.join(process.env.APPDATA as string, 'npm');
-    try {
-      npmPath = require.resolve(
-        path.join(process.env.APPDATA as string, 'npm/node_modules/npm'),
-      );
-    } catch (error) {
-      npmPath = require.resolve(
-        path.join(path.dirname(process.execPath), 'node_modules/npm'),
-      );
-    }
-  } else {
-    npmPath = require.resolve(
-      path.join(path.dirname(process.execPath), '../lib/node_modules/npm'),
-    );
-  }
-}
-
-const npm = require(npmPath);
-
-const load = (extraConfig?: any) =>
-  new Promise(resolve =>
-    npm.load(
-      {
-        silent: true,
-        json: true,
-        loglevel: 'silent',
-        audit: false,
-        ...extraConfig,
-      },
-      resolve,
-    ),
-  );
-
-// module.exports.load = (config = {}) =>
-//   new Promise(resolve => npm.load(config, resolve));
-export const distTag = {
-  ls: (pkg: string): Promise<Record<string, string>> =>
-    load().then(
-      () =>
-        new Promise((resolve, reject) =>
-          npm.commands.distTag(['ls', pkg], (err: Error | null, data: any) => {
-            if (err && err.message.includes('No dist-tags found for'))
-              resolve({});
-            else if (err) reject(err);
-            else resolve(data);
-          }),
-        ),
-    ),
-  add: (pkg: string, tag: string, version: string) =>
-    load().then(
-      () =>
-        new Promise((resolve, reject) =>
-          npm.commands.distTag(
-            ['add', `${pkg}@${version}`, tag],
-            (err: Error | null, data: any) => {
-              if (err) reject(err);
-              else resolve(data);
-            },
-          ),
-        ),
-    ),
-  rm: (pkg: string, tag: string) =>
-    load().then(
-      () =>
-        new Promise((resolve, reject) =>
-          npm.commands.distTag(
-            ['rm', pkg, tag],
-            (err: Error | null, data: any) => {
-              if (
-                !err ||
-                (typeof err.message === 'string' &&
-                  err.message.includes('is not a dist-tag on'))
-              )
-                resolve(data);
-              else reject(err);
-            },
-          ),
-        ),
-    ),
+export const setRegistry = (registry: 'npm' | 'taobao' | string) => {
+  if (registry === 'npm') registry = 'https://registry.npmjs.org/';
+  if (registry === 'taobao') registry = 'https://registry.npm.taobao.org/';
+  config.registry = registry;
 };
-export const publish = (packages: string[], isLatest: boolean) =>
-  new Promise((resolve, reject) => {
-    const worker = new Worker(__filename, {
-      workerData: { packages, isLatest, action: 'publish' },
-    });
-    worker.addListener('message', resolve);
-  });
-if (!isMainThread) {
-  const { packages, isLatest, action } = workerData;
-  const publishOnce = (pkg: string) =>
-    new Promise((resolve, reject) =>
-      npm.commands.publish(['./download/' + pkg], (v: any) => {
-        if (v instanceof Error) reject(v);
-        else resolve(v);
-      }),
-    );
-  const publish = (pkg: string): ReturnType<typeof publishOnce> => {
-    if (isLatest) console.log(`uploading latest package: ${pkg}`);
-    else console.log(`uploading non-latest package: ${pkg}`);
-    return publishOnce(pkg).catch(() => {
-      console.log(chalk.red(`upload ${pkg} failed, retry`));
-      return publish(pkg);
-    });
-  };
-  if (action === 'publish')
-    load({ tag: isLatest ? 'latest' : 'false' })
-      .then(() =>
-        Promise.map(packages as string[], pkg => publish(pkg), {
-          concurrency: 10,
-        }),
-      )
-      .then(() => {
-        parentPort!.postMessage('ok');
-        // process.exit();
-      });
-}
-export const pack = (pkg: string, dir?: string) =>
-  load().then(
-    () =>
-      new Promise((resolve, reject) =>
-        npm.commands.pack([pkg], true, (err: Error | null, data: any) => {
-          if (err) reject(err);
-          else resolve(data);
-        }),
-      ),
+
+export const distTag = {
+  ls: (pkg: string) =>
+    regFetch.json(
+      `/-/package/${encodeURIComponent(pkg)}/dist-tags`,
+      config,
+    ) as Promise<Record<string, string>>,
+  add: (pkg: string, tag: string, version: string) =>
+    regFetch.json(
+      `/-/package/${encodeURIComponent(pkg)}/dist-tags/${encodeURIComponent(
+        tag,
+      )}`,
+      {
+        ...config,
+        method: 'PUT',
+        body: JSON.stringify(version),
+        headers: {
+          'content-type': 'application/json',
+        },
+      },
+    ) as Promise<Record<string, string>>,
+  rm: (pkg: string, tag: string) =>
+    regFetch.json(
+      `/-/package/${encodeURIComponent(pkg)}/dist-tags/${encodeURIComponent(
+        tag,
+      )}`,
+      {
+        ...config,
+        method: 'DELETE',
+      },
+    ) as Promise<Record<string, string>>,
+};
+
+export const publish = (pkg: string, tag = 'latest') =>
+  new Promise(resolve =>
+    cacache.tmp.withTmp(config.tmp, { tmpPrefix: 'fromPackage' }, tmp => {
+      const cb = (async () => {
+        const extracted = path.join(tmp, 'package');
+        const target = path.join(extracted, 'package.json');
+        await pacote.extract(pkg, extracted);
+        const packageJsonString = await fs.promises.readFile(target, 'utf8');
+        const packageJson = JSON.parse(packageJsonString);
+        delete packageJson.publishConfig;
+        return libNpmPublish(packageJson, fs.createReadStream(pkg), {
+          ...config,
+          tag,
+        });
+      })();
+      resolve(cb);
+      return cb;
+    }),
   );
 
-pirates.addHook(
-  code => {
-    return code.replace(
-      `BB.promisify(require('read-package-json'))`,
-      `BB.promisify((...params) => {
-        const cb = params.pop();
-        require('read-package-json')(...params, (err, json) => {
-          delete json.publishConfig;
-          cb(err, json);
-        });
-      })`,
-    );
-  },
-  {
-    ignoreNodeModules: false,
-    matcher: filename =>
-      filename === path.join(path.dirname(npmPath), 'publish.js'),
-  },
-);
+export const view = async (pkg: string) => {
+  const packument = await pacote.packument(pkg, {
+    cache: config.cache,
+    registry: config.registry,
+  });
+  const manifest = pickManifest(packument, npa(pkg).fetchSpec);
+  if (!manifest.dist.integrity && manifest.dist.shasum)
+    manifest.dist.integrity = ssri
+      .fromHex(manifest.dist.shasum, 'sha1')
+      .toString();
 
-pirates.addHook(
-  code => {
-    return code.replace(`npmConfig()`, `require('./config/figgy-config.js')()`);
-  },
-  {
-    ignoreNodeModules: false,
-    matcher: filename =>
-      filename === path.join(path.dirname(npmPath), 'pack.js'),
-  },
-);
+  return { ...manifest, 'dist-tags': packument['dist-tags'] };
+};
+
+export const pack = async (pkg: string, dir: string = process.cwd()) => {
+  const { registry, cache } = config;
+  const packageManifest = await view(pkg);
+  return (
+    pacote.tarball
+      // @ts-ignore
+      .file(pkg, path.join(dir, downloadedFilename(pkg)), {
+        ...config,
+        registry,
+        cache,
+        resolved: packageManifest.dist.tarball,
+        integrity: packageManifest.dist.integrity,
+      })
+      .catch((e: any) => {
+        console.log(packageManifest, e);
+        process.exit();
+      })
+  );
+};

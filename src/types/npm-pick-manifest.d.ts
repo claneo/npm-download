@@ -1,9 +1,10 @@
 declare module 'npm-pick-manifest' {
+  import { Packument, Manifest } from 'pacote';
   const pickManifest: (
-    packument: import('pacote').Packument,
+    packument: Packument,
     spec?: string | null,
-  ) => import('pacote').Manifest & {
-    dist: { integrity?: string; shasum?: string };
+  ) => Manifest & {
+    dist: { integrity?: string; shasum?: string; tarball: string };
   };
   export default pickManifest;
 }

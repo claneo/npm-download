@@ -1,9 +1,10 @@
 import path from 'path';
+import { get } from '../utils/rwFile';
 import fromName from './fromName';
 
 type LockJson = { dependencies: Record<string, LockJson>; version: string };
 export default function fromLock(dir: string) {
-  const packageLockJson = require(path.join(dir, 'package-lock.json'));
+  const packageLockJson = get(path.join(dir, 'package-lock.json'));
   const packages: string[] = [];
   function handleDependencies(pkg: LockJson) {
     if (pkg.dependencies) {
