@@ -1,5 +1,4 @@
 import cacache from 'cacache';
-import chalk from 'chalk';
 import fs from 'fs';
 import libNpmConfig from 'libnpmconfig';
 import { publish as libNpmPublish } from 'libnpmpublish';
@@ -12,12 +11,22 @@ import path from 'path';
 import ssri from 'ssri';
 import downloadedFilename from './downloadedFilename';
 
-process.env['FORCE_COLOR'] = chalk.level.toString();
+const temp = osenv.tmpdir();
+let home = osenv.home();
+
+const uidOrPid = process.getuid ? process.getuid() : process.pid;
+
+if (home) process.env.HOME = home;
+else home = path.resolve(temp, 'npm-' + uidOrPid);
+
+const cacheExtra = process.platform === 'win32' ? 'npm-cache' : '.npm';
+const cacheRoot = (process.platform === 'win32' && process.env.APPDATA) || home;
+const cache = path.resolve(cacheRoot, cacheExtra, '_cacache');
 
 export const config = libNpmConfig
   .read({
-    tmp: osenv.tmpdir(),
-    cache: path.join(require('pacote/lib/util/cache-dir')(), '_cacache'),
+    tmp: temp,
+    cache,
   })
   .toJSON();
 
@@ -96,19 +105,20 @@ export const view = async (pkg: string) => {
 export const pack = async (pkg: string, dir: string = process.cwd()) => {
   const { registry, cache } = config;
   const packageManifest = await view(pkg);
-  return (
-    pacote.tarball
-      // @ts-ignore
-      .file(pkg, path.join(dir, downloadedFilename(pkg)), {
-        ...config,
-        registry,
-        cache,
-        resolved: packageManifest.dist.tarball,
-        integrity: packageManifest.dist.integrity,
-      })
-      .catch((e: any) => {
-        console.log(packageManifest, e);
-        process.exit();
-      })
-  );
+  const stream = pacote.tarball.stream(pkg, {
+    ...config,
+    registry,
+    cache,
+    resolved: packageManifest.dist.tarball,
+    integrity: packageManifest.dist.integrity,
+  });
+  const fileName = path.join(dir, downloadedFilename(pkg));
+  await fs.promises.unlink(fileName).catch(() => {});
+  return new Promise((resolve, reject) => {
+    const writer = fs.createWriteStream(fileName);
+    stream.on('error', reject);
+    writer.on('error', reject);
+    writer.on('close', resolve);
+    stream.pipe(writer);
+  });
 };

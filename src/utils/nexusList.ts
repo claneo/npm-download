@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as npm from './npm';
-import BB from 'bluebird';
+import asyncQueue from './asyncQueue';
 
 const request = (baseUrl: string, repoName: string, start?: number) =>
   axios.post<{ result: { unlimitedTotal: number; data: any[] } }>(
@@ -32,14 +32,14 @@ const nexusList = async function(baseUrl: string, repoName: string) {
   const starts = Array.from(Array(Math.ceil(unlimitedTotal / 1000))).map(
     v => v * 1000,
   );
-  const lists = await BB.map(
+  const lists = await asyncQueue(
     starts,
     start =>
       request(baseUrl, repoName, start).then(data => {
         console.log(start, data.data.result.data.length);
         return data;
       }),
-    { concurrency: 20 },
+    20,
   );
   console.log('finished');
   const list = lists.reduce<{ name: string; group: string; version: string }[]>(
@@ -60,7 +60,7 @@ const nexusList = async function(baseUrl: string, repoName: string) {
       packages[packageName].versions.push(item.version);
     else console.log('!');
   });
-  await BB.map(
+  await asyncQueue(
     Object.keys(packages),
     pkg => {
       console.log(`resolving dist-tag for package: ${pkg}`);
@@ -70,7 +70,7 @@ const nexusList = async function(baseUrl: string, repoName: string) {
         });
       });
     },
-    { concurrency: 20 },
+    20,
   );
   packages = Object.fromEntries(
     Object.entries(packages).sort(([a], [b]) => {

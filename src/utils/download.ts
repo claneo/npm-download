@@ -1,34 +1,27 @@
+import program from 'commander';
 import fs from 'fs';
-import BB from 'bluebird';
-import * as npm from './npm';
-import * as packagesList from './packageList';
+import asyncQueue from './asyncQueue';
 import * as configUtil from './config';
 import downloadedFilename from './downloadedFilename';
-import program from 'commander';
+import * as npm from './npm';
+import * as packagesList from './packageList';
 
-const checkFile = (pkg: string) =>
-  new BB((resolve, reject) => {
-    fs.stat(downloadedFilename(pkg), (err, stat) => {
-      if (!err && stat.size !== 0) resolve();
-      else {
-        reject(
-          new Error(
-            `downloaded file ${downloadedFilename(pkg)} invalid, retry`,
-          ),
-        );
-      }
-    });
-  });
+const checkFile = async (pkg: string) => {
+  const stat = await fs.promises.stat(downloadedFilename(pkg));
+  if (stat.size === 0)
+    throw new Error(`downloaded file ${downloadedFilename(pkg)} invalid`);
+};
 
 const downloadSingle = (pkg: string): Promise<unknown> =>
   npm
     .pack(pkg)
     // .timeout(60000, `download ${pkg} timeout after 30s, retry`)
-    .then(() => checkFile(pkg))
-    .catch(e => {
-      console.error(e.message);
-      return downloadSingle(pkg);
-    });
+    .then(() => checkFile(pkg));
+// .catch(e => {
+//   console.error((e as Error).stack);
+//   process.exit();
+//   return downloadSingle(pkg);
+// });
 
 export default async (packages: packagesList.PackageList) => {
   const diffVersions = packagesList.diffVersions(
@@ -45,13 +38,13 @@ export default async (packages: packagesList.PackageList) => {
       fs.mkdirSync('./download');
     }
     process.chdir('./download');
-    await BB.map(
+    await asyncQueue(
       diffVersions.reverse(),
       pkg => {
         console.log(`downloading ${pkg}`);
         return downloadSingle(pkg);
       },
-      { concurrency: 100 },
+      20,
     );
     process.chdir('..');
 
