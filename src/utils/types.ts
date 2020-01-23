@@ -1,5 +1,8 @@
-import https from 'https';
-import { view } from './npm';
+import cacache from 'cacache';
+import fs from 'fs';
+import pacote from 'pacote';
+import path from 'path';
+import { config, view } from './npm';
 
 export default async () => {
   const latestTsVersion = (await view('typescript')).version;
@@ -12,17 +15,20 @@ export default async () => {
   }
   const typesRegistry = await new Promise<{
     entries: Record<string, Record<string, string>>;
-  }>((resolve, reject) => {
-    https.get(
-      'https://cdn.jsdelivr.net/npm/types-registry@latest/index.json',
-      res => {
-        let data = '';
-        res.setEncoding('utf8');
-        res.on('data', chunk => (data += chunk));
-        res.on('end', () => resolve(JSON.parse(data)));
-      },
-    );
-  });
+  }>(resolve =>
+    cacache.tmp.withTmp(config.tmp, { tmpPrefix: 'fromPackage' }, tmp => {
+      const cb = (async () => {
+        const extracted = path.join(tmp, 'package');
+        const target = path.join(extracted, 'index.json');
+        await pacote.extract('types-registry', extracted);
+        const indexJsonString = await fs.promises.readFile(target, 'utf8');
+        const indexJson = JSON.parse(indexJsonString);
+        return indexJson;
+      })();
+      resolve(cb);
+      return cb;
+    }),
+  );
   const packages: Record<
     string,
     { versions: string[]; tags: Record<string, string> }
