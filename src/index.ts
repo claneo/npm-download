@@ -9,7 +9,5 @@ export { default as fromTypes } from './lib/fromTypes';
 export { default as list } from './lib/list';
 export { default as upload } from './lib/upload';
 
-if (!require.include) require.include = () => {};
-
 require.include('semver/functions/valid');
 require.include('semver/ranges/valid');

@@ -7,8 +7,7 @@
     "test": "jest",
     "build": "webpack",
     "build:dev": "webpack --env.dev",
-    "watch": "webpack --watch",
-    "watch:tsc": "tsc --watch"
+    "watch": "webpack --env.dev --watch"
   },
   "author": "",
   "license": "ISC",

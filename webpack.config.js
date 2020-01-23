@@ -19,7 +19,7 @@ module.exports = (env = {}) => {
       },
     },
     output: { libraryTarget: 'commonjs2' },
-    devtool: 'source-map',
+    devtool: 'none',
     target: 'node',
     module: {
       rules: [
@@ -37,7 +37,7 @@ module.exports = (env = {}) => {
     },
     plugins: [
       new CleanWebpackPlugin(),
-      // new webpack.IgnorePlugin({ resourceRegExp: /iconv-loader$/ }),
+      new webpack.NormalModuleReplacementPlugin(/iconv-loader$/, 'lodash/noop'),
       new ForkTsCheckerWebpackPlugin({ async: true }),
     ],
     watchOptions: {
