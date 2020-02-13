@@ -38,7 +38,7 @@ module.exports = (env = {}) => {
     plugins: [
       new CleanWebpackPlugin(),
       new webpack.NormalModuleReplacementPlugin(/iconv-loader$/, 'lodash/noop'),
-      new ForkTsCheckerWebpackPlugin({ async: true }),
+      new ForkTsCheckerWebpackPlugin(),
     ],
     watchOptions: {
       ignored: /\.test\.ts$/,

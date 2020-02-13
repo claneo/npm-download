@@ -1,4 +1,4 @@
-import https from 'https';
+import axios from 'axios';
 import asyncQueue from './asyncQueue';
 
 type SearchResult = {
@@ -9,20 +9,11 @@ type SearchResult = {
 }[];
 
 const search = (size: number, from: number) =>
-  new Promise<SearchResult>(resolve => {
-    https.get(
+  axios
+    .get(
       `https://registry.npmjs.com/-/v1/search?text=boost-exact:false&popularity=1.0&quality=1.0&maintenance=1.0&size=${size}&from=${from}`,
-      res => {
-        let result = '';
-        res.on('data', data => {
-          result += data.toString();
-        });
-        res.on('close', () => {
-          resolve(JSON.parse(result).objects);
-        });
-      },
-    );
-  });
+    )
+    .then<SearchResult>(res => res.data.objects);
 
 export default (top = 250) => {
   const requests = [];

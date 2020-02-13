@@ -40,5 +40,3 @@ const resolveDependencies = async (packageNames: string[], withDeps = true) => {
   return resolvedPackages;
 };
 export default resolveDependencies;
-
-// resolveDependencies(["antd"]).then(console.log);
