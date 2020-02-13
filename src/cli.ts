@@ -9,6 +9,10 @@ import {
   fromTypes,
   list,
   upload,
+  starList,
+  starAdd,
+  starRemove,
+  starUpdate,
 } from './';
 import { setRegistry } from './utils/npm';
 
@@ -64,19 +68,29 @@ export default function cli() {
     .description('list existing package and save to nexusRepo.json')
     .action(list);
 
-  program
-    .command('add')
-    .description('read from types-registry')
-    .action(async () => {
-      //
-    });
+  const starCommand = program
+    .command('star')
+    .description('manage star packages');
 
-  program
-    .command('upgrade')
-    .description('read from types-registry')
-    .action(async () => {
-      //
-    });
+  starCommand
+    .command('list')
+    .description('list')
+    .action(starList);
+
+  starCommand
+    .command('add <packages...>')
+    .description('add')
+    .action(starAdd);
+
+  starCommand
+    .command('remove <packages...>')
+    .description('remove')
+    .action(starRemove);
+
+  starCommand
+    .command('update')
+    .description('update')
+    .action(starUpdate);
 
   program
     .command('upload')
@@ -84,10 +98,6 @@ export default function cli() {
     .action(upload);
 
   program.parse(process.argv);
-
-  if (process.argv.length <= 2) {
-    program.outputHelp();
-  }
 
   if (program.opts().registry) setRegistry(program.opts().registry);
 }
